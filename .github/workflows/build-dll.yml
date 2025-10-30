@@ -1,65 +1,31 @@
-name: 编译 DLL
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+name: 自动编译DLL
+on: [push, pull_request]  # 推送代码或PR时触发
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-latest  # 必须用Windows系统
 
     steps:
-    - name: 拉取代码
-      uses: actions/checkout@v4
+      - name: 拉取代码
+        uses: actions/checkout@v4
 
-    - name: 配置 Visual Studio 环境
-      uses: microsoft/setup-msbuild@v2
+      - name: 安装.NET Framework 4.8
+        uses: microsoft/setup-dotnet@v4
+        with:
+          dotnet-version: '4.8.x'
 
-    - name: 创建并配置 DLL 项目
-      run: |
-        # 创建项目目录并进入
-        mkdir ProcessPathDLL
-        cd ProcessPathDLL
-        
-        # 使用 dotnet 命令创建 C++ 类库项目（DLL）
-        dotnet new classlib -lang C++ -n ProcessPathDLL
-        
-        # 安全删除可能存在的默认文件（忽略不存在的文件）
-        $defaultFiles = @("ProcessPathDLL.cpp", "pch.h", "pch.cpp", "framework.h", "dllmain.cpp")
-        foreach ($file in $defaultFiles) {
-          if (Test-Path $file) {
-            Remove-Item -Path $file -Force
-            Write-Host "已删除文件: $file"
-          } else {
-            Write-Host "文件不存在，跳过删除: $file"
-          }
-        }
-        
-        # 复制源码到项目目录
-        Copy-Item -Path ../ProcessPath.cpp -Destination .
-        
-        # 修改项目属性（适配多字节字符集、禁用预编译头、链接必要库）
-        (Get-Content ProcessPathDLL.vcxproj) | ForEach-Object {
-          $_ -replace '<CharacterSet>Unicode</CharacterSet>', '<CharacterSet>MultiByte</CharacterSet>' `
-             -replace '<PrecompiledHeader>Use</PrecompiledHeader>', '<PrecompiledHeader>NotUsing</PrecompiledHeader>' `
-             -replace '</Link>', '  <AdditionalDependencies>psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>`n</Link>'
-        } | Set-Content ProcessPathDLL.vcxproj
+      - name: 还原NuGet依赖（安装DllExport）
+        run: |
+          cd ProcessPathDLL
+          nuget restore
 
-    - name: 编译 DLL（Release x64）
-      run: |
-        cd ProcessPathDLL
-        msbuild ProcessPathDLL.vcxproj /p:Configuration=Release /p:Platform=x64
+      - name: 编译项目
+        run: |
+          cd ProcessPathDLL
+          msbuild /p:Configuration=Release /p:Platform=x86
 
-    - name: 上传 DLL 作为 Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ProcessPath-DLL
-        path: ProcessPathDLL/x64/Release/ProcessPathDLL.dll
-
-    - name: 发布到 Release（标签触发）
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v2
-      with:
-        files: ProcessPathDLL/x64/Release/ProcessPathDLL.dll
+      - name: 上传编译好的DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProcessPathDLL  # 下载时的文件名
+          path: ProcessPathDLL/bin/x86/Release/ProcessPathDLL.dll  # DLL生成路径
