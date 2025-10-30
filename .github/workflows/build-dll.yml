@@ -1,4 +1,4 @@
-name: 自动编译DLL2
+name: 自动编译DLL
 on: [push, pull_request]
 
 jobs:
