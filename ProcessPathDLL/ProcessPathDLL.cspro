@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>  <!-- .NET Framework 4.8，兼容性好 -->
+    <PlatformTarget>x86</PlatformTarget>     <!-- 32位，适配易语言默认环境 -->
+    <OutputType>Library</OutputType>         <!-- 输出类型为类库（DLL） -->
+    <AssemblyName>ProcessPathDLL</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 引用DllExport包，用于导出函数 -->
+    <PackageReference Include="UnmanagedExports" Version="1.2.7" />
+  </ItemGroup>
+</Project>
