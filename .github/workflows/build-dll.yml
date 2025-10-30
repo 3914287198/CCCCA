@@ -1,0 +1,63 @@
+name: 编译 DLL
+
+on:
+  push:
+    branches: [ main ]  # 当 main 分支有推送时触发
+  pull_request:
+    branches: [ main ]  # 当有 PR 合并到 main 时触发
+
+jobs:
+  build:
+    runs-on: windows-latest  # 使用 Windows 环境编译（必须，因为依赖 Windows API）
+
+    steps:
+    - name: 拉取代码
+      uses: actions/checkout@v4  # 拉取当前仓库代码
+
+    - name: 配置 Visual Studio 环境
+      uses: microsoft/setup-msbuild@v2  # 加载 VS 编译工具
+
+    - name: 创建 DLL 项目（通过命令行生成）
+      run: |
+        # 创建一个临时目录存放项目文件
+        mkdir ProcessPathDLL
+        cd ProcessPathDLL
+        
+        # 使用 MSBuild 创建 DLL 项目（基于 VS 模板）
+        dotnet new classlib -lang C++ -n ProcessPathDLL
+        
+        # 删除自动生成的默认文件（可选，避免冲突）
+        Remove-Item -Path "ProcessPathDLL.cpp" -Force
+        Remove-Item -Path "pch.h" -Force
+        Remove-Item -Path "pch.cpp" -Force
+        
+        # 将仓库中的源码复制到项目目录
+        Copy-Item -Path ../ProcessPath.cpp -Destination .
+        
+        # 修改项目属性（确保编译为 DLL 并适配代码）
+        # 1. 设置字符集为多字节（避免宽字符问题）
+        # 2. 禁用预编译头（因为我们删除了 pch 文件）
+        # 3. 链接必要的系统库（如 psapi.lib，GetModuleFileNameEx 依赖）
+        (Get-Content ProcessPathDLL.vcxproj) | ForEach-Object {
+          $_ -replace '<CharacterSet>Unicode</CharacterSet>', '<CharacterSet>MultiByte</CharacterSet>' `
+             -replace '<PrecompiledHeader>Use</PrecompiledHeader>', '<PrecompiledHeader>NotUsing</PrecompiledHeader>' `
+             -replace '</Link>', '  <AdditionalDependencies>psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>`n</Link>'
+        } | Set-Content ProcessPathDLL.vcxproj
+
+    - name: 编译 DLL（Release 版本）
+      run: |
+        cd ProcessPathDLL
+        msbuild ProcessPathDLL.vcxproj /p:Configuration=Release /p:Platform=x64  # 编译 x64  Release 版本
+
+    - name: 上传 DLL 作为 Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ProcessPath-DLL
+        path: ProcessPathDLL/x64/Release/ProcessPathDLL.dll  # 编译后 DLL 的路径
+
+    # （可选）自动发布到 Release（当打标签时触发）
+    - name: 发布到 Release
+      if: startsWith(github.ref, 'refs/tags/')  # 仅当推送标签时执行
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ProcessPathDLL/x64/Release/ProcessPathDLL.dll  # 将 DLL 作为 Release 附件
