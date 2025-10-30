@@ -1,20 +1,20 @@
 name: 自动编译DLL
-on: [push, pull_request]  # 推送代码或PR时触发
+on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: windows-latest  # 必须用Windows系统
+    runs-on: windows-latest
 
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
 
-      - name: 安装.NET Framework 4.8
-        uses: microsoft/setup-dotnet@v4
+      - name: 安装.NET Framework 4.8 构建工具
+        uses: actions/setup-dotnet@v4  # 修正为正确的Action名称
         with:
           dotnet-version: '4.8.x'
 
-      - name: 还原NuGet依赖（安装DllExport）
+      - name: 还原NuGet依赖
         run: |
           cd ProcessPathDLL
           nuget restore
@@ -24,8 +24,8 @@ jobs:
           cd ProcessPathDLL
           msbuild /p:Configuration=Release /p:Platform=x86
 
-      - name: 上传编译好的DLL
+      - name: 上传DLL
         uses: actions/upload-artifact@v4
         with:
-          name: ProcessPathDLL  # 下载时的文件名
-          path: ProcessPathDLL/bin/x86/Release/ProcessPathDLL.dll  # DLL生成路径
+          name: ProcessPathDLL
+          path: ProcessPathDLL/bin/x86/Release/ProcessPathDLL.dll
