@@ -7,13 +7,16 @@ jobs:
 
     steps:
       - name: 拉取代码
-        uses: actions/checkout@v4  # 直接拉取仓库中已有的文件（包括ProcessPathDLL文件夹）
+        uses: actions/checkout@v4
+
+      - name: 配置Visual Studio构建工具
+        uses: microsoft/setup-msbuild@v2
 
       - name: 安装NuGet工具
         uses: nuget/setup-nuget@v2
 
       - name: 还原依赖包
-        run: nuget restore ProcessPathDLL/ProcessPathDLL.csproj  # 直接使用现有项目文件
+        run: nuget restore ProcessPathDLL/ProcessPathDLL.csproj
 
       - name: 编译项目
         run: msbuild ProcessPathDLL/ProcessPathDLL.csproj /p:Configuration=Release /p:Platform=x86
