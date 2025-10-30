@@ -15,11 +15,11 @@ jobs:
       - name: 安装NuGet工具
         uses: nuget/setup-nuget@v2
 
-      - name: 还原依赖包
-        run: nuget restore ProcessPathDLL/ProcessPathDLL.csproj
+      - name: 还原NuGet包（使用packages.config）
+        run: nuget restore ProcessPathDLL/ProcessPathDLL.csproj -PackagesDirectory ProcessPathDLL/packages
 
       - name: 编译项目
-        run: msbuild ProcessPathDLL/ProcessPathDLL.csproj /p:Configuration=Release /p:Platform=x86
+        run: msbuild ProcessPathDLL/ProcessPathDLL.csproj /p:Configuration=Release /p:Platform=x86 /p:PlatformTarget=x86
 
       - name: 上传DLL
         uses: actions/upload-artifact@v4
