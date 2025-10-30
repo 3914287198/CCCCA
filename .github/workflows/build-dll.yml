@@ -7,22 +7,16 @@ jobs:
 
     steps:
       - name: 拉取代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # 直接拉取仓库中已有的文件（包括ProcessPathDLL文件夹）
 
-      - name: 安装.NET Framework 4.8 构建工具
-        uses: actions/setup-dotnet@v4  # 修正为正确的Action名称
-        with:
-          dotnet-version: '4.8.x'
+      - name: 安装NuGet工具
+        uses: nuget/setup-nuget@v2
 
-      - name: 还原NuGet依赖
-        run: |
-          cd ProcessPathDLL
-          nuget restore
+      - name: 还原依赖包
+        run: nuget restore ProcessPathDLL/ProcessPathDLL.csproj  # 直接使用现有项目文件
 
       - name: 编译项目
-        run: |
-          cd ProcessPathDLL
-          msbuild /p:Configuration=Release /p:Platform=x86
+        run: msbuild ProcessPathDLL/ProcessPathDLL.csproj /p:Configuration=Release /p:Platform=x86
 
       - name: 上传DLL
         uses: actions/upload-artifact@v4
